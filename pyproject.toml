@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chaos-dots"
+version = "0.1.0"
+description = "Dotfile manager plugin for Ch-aronte's B-coin"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pyinfra",
+    "omegaconf",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[project.entry-points."charonte.roles"]
+dotfiles = "chaos_dots.roles.dotfiles.dotfiles:run_dotfiles_logic"
+
+[project.entry-points."charonte.aliases"]
+dots = "dotfiles"
