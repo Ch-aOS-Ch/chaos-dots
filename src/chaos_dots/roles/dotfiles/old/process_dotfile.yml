@@ -38,33 +38,6 @@
     prev_state: "{{ dotfiles_previous_state.content | b64decode | from_yaml | default({'applied': []}) }}"
   when: dotfile_item.manager | default('') == 'charonte'
 
-- name: "Executing custom install_command"
-  ansible.builtin.command:
-    cmd: "{{ dotfile_item.install_command }}"
-    chdir: "{{ dotfiles_repo_path }}"
-  when:
-    - dotfile_item.install_command is defined
-    - dotfile_item.install_command | length > 0
-    - dotfile_item.install_command is not in ['rm -rf /*', 'rm -rf / --no-preserve-root', 'rm -rf $HOME']
-  become: true
-  become_user: "{{ dotfile_item.user }}"
-
-- name: "Applying the dotfiles with the {{ dotfile_item.manager | default('None') }} manager"
-  ansible.builtin.command:
-    cmd: |
-      {% if dotfile_item.manager == 'stow' %}
-      stow --target=/home/{{ dotfile_item.user }} --dir=. *
-      {% elif dotfile_item.manager == 'yadm' %}
-      echo "yadm not implemented yet, please use stow."
-      {% endif %}
-    chdir: "{{ dotfiles_repo_path }}"
-  when:
-    - dotfile_item.manager is defined
-    - dotfile_item.manager | length > 0
-    - dotfile_item.manager != "charonte"
-  become: true
-  become_user: "{{ dotfile_item.user }}"
-
 - name: "Initialize new repo state list"
   set_fact:
     new_repo_state: []
@@ -137,27 +110,6 @@
     - dirs_files is defined
     - item.from is defined
     - item.from in dirs_files
-
-- name: "Verify if install.sh exists in repo path"
-  ansible.builtin.stat:
-    path: "{{ dotfiles_repo_path }}/install.sh"
-  register: dotfiles_install_script_stat
-  when:
-    - dotfile_item.install_command is not defined
-    - dotfile_item.manager is not defined
-  become: true
-  become_user: "{{ dotfile_item.user }}"
-
-- name: "Execute install.sh in repo path"
-  ansible.builtin.command:
-    cmd: "bash install.sh"
-    chdir: "{{ dotfiles_repo_path }}"
-  when:
-    - dotfiles_install_script_stat.stat is defined
-    - dotfiles_install_script_stat.stat.exists
-    - dotfile_item.manager is not defined
-  become: true
-  become_user: "{{ dotfile_item.user }}"
 
 - name: "Ensure parent directory for dotfiles state exists"
   ansible.builtin.file:
