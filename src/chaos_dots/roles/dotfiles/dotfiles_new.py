@@ -6,6 +6,7 @@ import os
 from pyinfra.operations import server, pacman, git, files
 from omegaconf import OmegaConf
 from pyinfra.api.operation import add_op
+from pyinfra.api.operations import run_ops
 from pyinfra.facts.files import Directory, File
 from pyinfra.facts.server import Command
 
@@ -20,7 +21,10 @@ def getFilesystemState(host, user, paths):
     fsState = {}
     if rawOutput:
         for line in rawOutput.strip().splitlines():
-            path, fileType, linkTarget = line.split('\t')
+            parts = line.split('\t')
+            path = parts[0]
+            fileType = parts[1]
+            linkTarget = parts[2] if len(parts) > 2 else ""
             fsState[path] = {
                 "path": path,
                 "is_link": fileType == 'l',
@@ -63,33 +67,40 @@ def handleGitRepo(state, host, users, sysUsers, dot):
 
 def manageSingleLink(state, user, sourceItem, targetPath, fsState):
     targetState = fsState.get(targetPath)
-    needsBackup = False
-    if targetState and targetState.get("exists"):
-        if not targetState.get("is_link") or targetState.get("link_target") != sourceItem:
-            needsBackup = True
 
-    if needsBackup:
+    if targetState and targetState.get("exists") and \
+       (not targetState.get("is_link") or targetState.get("link_target") != sourceItem):
+
         timestamp = int(time.time())
         backupPath = f"{targetPath}.bak_{timestamp}"
+        parentDir = os.path.dirname(targetPath)
+
+        commands = [
+            f"mv '{targetPath}' '{backupPath}'",
+            f"mkdir -p '{parentDir}'",
+            f"ln -sfn '{sourceItem}' '{targetPath}'"
+        ]
+
         add_op(
-            state, server.shell,
-            name=f"Backing up existing item: {targetPath}",
-            commands=f"mv {targetPath} {backupPath}",
-            _sudo=True, _sudo_user=user
+            state,
+            server.shell,
+            name=f"Backing up existing file and creating link: {targetPath}",
+            commands=commands,
+            _sudo=True,
+            _sudo_user=user,
         )
-
-    parentDir = os.path.dirname(targetPath)
-    add_op(
-        state, files.directory,
-        name=f"Ensuring parent directory exists: {parentDir}",
-        path=parentDir, user=user, present=True, _sudo=True, _sudo_user=user
-    )
-
-    add_op(
-        state, files.link,
-        name=f"Creating link: {targetPath} -> {sourceItem}",
-        path=targetPath, target=sourceItem, user=user, _sudo=True, _sudo_user=user
-    )
+    elif not (targetState and targetState.get("exists")):
+        parentDir = os.path.dirname(targetPath)
+        add_op(
+            state, files.directory,
+            name=f"Ensuring parent directory exists: {parentDir}",
+            path=parentDir, user=user, present=True, _sudo=True, _sudo_user=user
+        )
+        add_op(
+            state, files.link,
+            name=f"Creating link: {targetPath} -> {sourceItem}",
+            path=targetPath, target=sourceItem, user=user, _sudo=True, _sudo_user=user
+        )
 
 
 def runDotfiles(state, host, choboloPath, skip):
@@ -128,6 +139,10 @@ def runDotfiles(state, host, choboloPath, skip):
                     pathsToRemove.extend(item.get('managed_files', []))
                 elif item.get('path'):
                     pathsToRemove.append(f"{userHome}/{item.get('path')}")
+        dotLocExists = host.get_fact(Directory, path=dotLoc)
+        if not dotLocExists:
+            print(f"Info: Dotfile repo for '{dotName}' is being cloned. Links will be processed on the next run.")
+            continue
 
         repoContentsRaw = host.get_fact(Command, f"ls -A1 {dotLoc}", _sudo=True, _sudo_user=user)
         repoContents = set(repoContentsRaw.strip().splitlines() if repoContentsRaw else [])
@@ -141,17 +156,18 @@ def runDotfiles(state, host, choboloPath, skip):
                 continue
 
             destRel = link.get('to') or source
-            targetPath = f"{userHome}/{destRel}"
 
             if link.get('open'):
+                targetBaseDir = f"{userHome}/{destRel}"
                 sourceDir = f"{dotLoc}/{source}"
-                openFilesRaw = host.get_fact(Command, f"ls -A1 {sourceDir}", _sudo=True, _sudo_user=user)
+                openFilesRaw = host.get_fact(Command, f"ls -A1 {sourceDir} 2>/dev/null || true", _sudo=True, _sudo_user=user)
                 openFiles = openFilesRaw.strip().splitlines() if openFilesRaw else []
                 openLinkSourceFiles[source] = openFiles
                 for item in openFiles:
-                    pathsToStat.add(f"{targetPath}/{item}")
+                    pathsToStat.add(os.path.normpath(f"{targetBaseDir}/{item}"))
             else:
-                pathsToStat.add(targetPath)
+                link_path = source if destRel == '.' else destRel
+                pathsToStat.add(f"{userHome}/{link_path}")
 
         fsState = getFilesystemState(host, user, list(pathsToStat))
 
@@ -184,7 +200,7 @@ def runDotfiles(state, host, choboloPath, skip):
 
                     for item in sourceFiles:
                         sourceItem = f"{dotLoc}/{source}/{item}"
-                        targetPath = f"{targetBaseDir}/{item}"
+                        targetPath = os.path.normpath(f"{targetBaseDir}/{item}")
                         manageSingleLink(state, user, sourceItem, targetPath, fsState)
 
                         managedFiles.append(targetPath)
@@ -192,10 +208,11 @@ def runDotfiles(state, host, choboloPath, skip):
                     newRunState.append({'source': source, 'path': destRel, 'open': True, 'managed_files': managedFiles})
                 else:
                     sourceItem = f"{dotLoc}/{source}"
-                    targetPath = f"{userHome}/{destRel}"
+                    link_path = source if destRel == '.' else destRel
+                    targetPath = f"{userHome}/{link_path}"
                     manageSingleLink(state, user, sourceItem, targetPath, fsState)
 
-                    newRunState.append({'source': source, 'path': destRel, 'open': False, 'managed_files': []})
+                    newRunState.append({'source': source, 'path': link_path, 'open': False, 'managed_files': []})
 
             stateDir = f"{userHome}/.local/state/charonte"
             stateFile = f"{stateDir}/dotfiles_{dotName}"
