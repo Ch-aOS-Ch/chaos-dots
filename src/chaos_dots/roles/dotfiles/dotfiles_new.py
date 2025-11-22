@@ -15,7 +15,7 @@ def getFilesystemState(host, user, paths):
         return {}
 
     pathArgs = " ".join([f"'{p}'" for p in paths])
-    command = f"find {pathArgs} -maxdepth 0 -printf '%p\t%Y\t%l\n' 2>/dev/null"
+    command = f"find {pathArgs} -maxdepth 0 -printf '%p\t%Y\t%l\n' 2>/dev/null || true"
     rawOutput = host.get_fact(Command, command, _sudo=True, _sudo_user=user)
 
     fsState = {}
@@ -180,8 +180,12 @@ def runDotfiles(state, host, choboloPath, skip):
             for path in pathsToRemove:
                 if fsState.get(path, {}).get('exists'):
                     add_op(
-                        state, files.file, name=f"Removing obsolete dotfile: {path}",
-                        path=path, present=False, user=user, _sudo=True, _sudo_user=user
+                        state,
+                        server.shell,
+                        name=f"Removing obsolete path: {path}",
+                        commands=[f"rm -rf '{path}'"],
+                        _sudo=True,
+                        _sudo_user=user,
                     )
 
             newRunState = []
