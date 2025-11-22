@@ -107,6 +107,9 @@ def runDotfiles(state, host, choboloPath, skip):
     sysUsersRaw = host.get_fact(Command, "awk -F: '($3<1000){print $1}' /etc/passwd")
     sysUsers = set(sysUsersRaw.strip().splitlines() if sysUsersRaw else [])
 
+    if not chObolo.get('dotfiles'):
+        print(f"\nNo dotfiles configured, skipping dotfile setup.")
+
     for dotConfig in chObolo.get('dotfiles', []):
         dotLoc, dotName, dot, user = handleGitRepo(state, host, users, sysUsers, dotConfig)
         if not dotLoc:
@@ -193,7 +196,7 @@ def runDotfiles(state, host, choboloPath, skip):
                     sourceItem = f"{dotLoc}/{source}"
                     targetPath = f"{userHome}/{destRel}"
                     manageSingleLink(state, user, sourceItem, targetPath, fsState)
-                    
+
                     newRunState.append({'source': source, 'path': destRel, 'open': False, 'managed_files': []})
 
             stateDir = f"{userHome}/.local/state/charonte"

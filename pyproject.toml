@@ -20,7 +20,7 @@ where = ["src"]
 pythonpath = ["src"]
 
 [project.entry-points."charonte.roles"]
-dotfiles = "chaos_dots.roles.dotfiles.dotfiles:run_dotfiles_logic"
+dotfiles = "chaos_dots.roles.dotfiles.dotfiles_new:runDotfiles"
 
 [project.entry-points."charonte.aliases"]
 dots = "dotfiles"
