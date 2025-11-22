@@ -15,7 +15,7 @@ sha256sums=('SKIP')
 package() {
   cd "$srcdir/${_gitname}-$pkgver"
 
-  uv build
+  uv build 2>/dev/null
 
   install -d "$pkgdir/usr/share/charonte/plugins/"
 
