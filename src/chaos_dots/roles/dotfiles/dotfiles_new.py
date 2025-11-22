@@ -15,7 +15,7 @@ def getFilesystemState(host, user, paths):
         return {}
 
     pathArgs = " ".join([f"'{p}'" for p in paths])
-    command = f"find {pathArgs} -maxdepth 0 -printf '%p\t%Y\t%l\n' 2>/dev/null || true"
+    command = f"find {pathArgs} -maxdepth 0 -printf '%p\t%y\t%l\n' 2>/dev/null || true"
     rawOutput = host.get_fact(Command, command, _sudo=True, _sudo_user=user)
 
     fsState = {}
