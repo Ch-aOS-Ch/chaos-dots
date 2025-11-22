@@ -51,7 +51,7 @@ def handleGitRepo(state, host, users, sysUsers, dot):
 
     branch = dot.get('branch', 'main')
     pull = dot.get('pull', False)
-    should_run_git = not dotLocEx or pull or (dotLocEx and branch)
+    should_run_git = not dotLocEx or pull
     if should_run_git:
         add_op(
             state, git.repo,
