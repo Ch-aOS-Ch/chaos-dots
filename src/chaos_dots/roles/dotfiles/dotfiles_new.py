@@ -128,7 +128,7 @@ def runDotfiles(state, host, choboloPath, skip):
         desiredLinks = dot.get('links', [])
 
         prevStateFile = f"{userHome}/.local/state/charonte/dotfiles_{dotName}"
-        prevStateContent = host.get_fact(File, path=prevStateFile)
+        prevStateContent = host.get_fact(Command, f"cat {prevStateFile} || true", _sudo=True, _sudo_user=user)
         prevState = yaml.safe_load(prevStateContent) if prevStateContent else {"applied": []}
 
         pathsToRemove = []
