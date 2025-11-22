@@ -172,9 +172,15 @@ def runDotfiles(state, host, choboloPath, skip):
         fsState = getFilesystemState(host, user, list(pathsToStat))
 
         print(f"\nProcessing dotfiles for user '{user}': {dotName}")
-        print(f"Links to process: {desiredLinks}")
-        print(f"Paths to remove: {pathsToRemove}")
-        confirm = "y" if skip else input("Is This correct (Y/n)? ")
+        print(f"Links to process: ")
+        for link in desiredLinks:
+            print(f"  Linked from: {link.get('from')}")
+            print(f"  Linked to: {link.get('to')}")
+            print(f"  Open.\n") if link.get('open') else print(f"  Not open.\n")
+        print(f"Paths to remove: ") if pathsToRemove else print("No paths to remove.")
+        for rem in pathsToRemove:
+            print(f"{rem}")
+        confirm = "y" if skip else input("\nIs This correct (Y/n)? ")
 
         if confirm.lower() in ["y", "yes", "", "s", "sim"]:
             for path in pathsToRemove:
