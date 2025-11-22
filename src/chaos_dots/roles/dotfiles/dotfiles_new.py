@@ -47,18 +47,16 @@ def handleGitRepo(state, host, users, sysUsers, dot):
 
     branch = dot.get('branch', 'main')
     pull = dot.get('pull', False)
-
-    if dotLocEx and pull:
+    should_run_git = not dotLocEx or pull or (dotLocEx and branch)
+    if should_run_git:
         add_op(
             state, git.repo,
-            name=f"Updating dotfile repo for user '{user}': {dot.get('url')}",
-            dest=dotLoc, branch=branch, pull=pull, user=user,
-        )
-    elif not dotLocEx:
-        add_op(
-            state, git.repo,
-            name=f"Cloning dotfile repo for user '{user}': {dot.get('url')}",
-            src=dot.get('url'), dest=dotLoc, branch=branch, pull=pull, user=user,
+            name=f"Ensuring dotfile repo state for '{user}'",
+            src=dot.get('url'),
+            dest=dotLoc,
+            branch=branch,
+            pull=pull,
+            user=user,
         )
     return dotLoc, dotName, dot, user
 
