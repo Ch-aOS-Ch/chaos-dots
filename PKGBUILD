@@ -1,6 +1,6 @@
 # Maintainer: Dexmachi caiorocoli@gmail.com
 pkgname=chaos-dotfiles
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Declarative dotfiles manager for Arch Linux."
 arch=('any')
