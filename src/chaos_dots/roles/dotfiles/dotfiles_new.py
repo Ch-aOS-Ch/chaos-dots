@@ -127,7 +127,7 @@ def runDotfiles(state, host, choboloPath, skip):
         userHome = f"/home/{user}"
         desiredLinks = dot.get('links', [])
 
-        prevStateFile = f"{userHome}/.local/state/charonte/dotfiles_{dotName}"
+        prevStateFile = f"{userHome}/.local/state/chaos/dotfiles_{dotName}"
         prevStateContent = host.get_fact(Command, f"cat {prevStateFile} || true", _sudo=True, _sudo_user=user)
         prevState = yaml.safe_load(prevStateContent) if prevStateContent else {"applied": []}
 
@@ -224,7 +224,7 @@ def runDotfiles(state, host, choboloPath, skip):
 
                     newRunState.append({'source': source, 'path': link_path, 'open': False, 'managed_files': []})
 
-            stateDir = f"{userHome}/.local/state/charonte"
+            stateDir = f"{userHome}/.local/state/chaos"
             stateFile = f"{stateDir}/dotfiles_{dotName}"
             conf = OmegaConf.create({'applied': newRunState})
             yamlContent = OmegaConf.to_yaml(conf)

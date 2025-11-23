@@ -17,7 +17,7 @@ package() {
 
   uv build 2>/dev/null
 
-  install -d "$pkgdir/usr/share/charonte/plugins/"
+  install -d "$pkgdir/usr/share/chaos/plugins/"
 
-  install -m644 dist/*.whl "$pkgdir/usr/share/charonte/plugins/"
+  install -m644 dist/*.whl "$pkgdir/usr/share/chaos/plugins/"
 }

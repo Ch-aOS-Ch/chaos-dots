@@ -49,7 +49,7 @@ def handleGit(state, host, users, sysUsers, dot):
 def handleDotDelta(host, dotName, dot):
     user = dot.get('user')
     userHome = f"/home/{user}"
-    prevRun=f"{userHome}/.local/state/charonte/dotfiles_{dotName}"
+    prevRun=f"{userHome}/.local/state/chaos/dotfiles_{dotName}"
     prevRunContent = host.get_fact(File, path=prevRun)
     if prevRunContent:
         runDict = yaml.safe_load(prevRunContent)
@@ -126,7 +126,7 @@ def handleDotLogic(state, host, dotLoc, dotName, links, user, pathToRemove):
             manageClosed(state, host, dotLoc, linkFrom, destRel, user)
             newRun.append({'source': linkFrom, 'path': destRel, 'open': False, 'managed_files': []})
 
-    stateDir = f"/home/{user}/.local/state/charonte"
+    stateDir = f"/home/{user}/.local/state/chaos"
     stateFile = f"{stateDir}/dotfiles_{dotName}"
 
     conf = OmegaConf.create({'applied': newRun})
