@@ -24,3 +24,6 @@ dotfiles = "chaos_dots.roles.dotfiles.dotfiles_new:runDotfiles"
 
 [project.entry-points."chaos.aliases"]
 dots = "dotfiles"
+
+[project.entry-points."chaos.explain"]
+dotfiles = "chaos_dots.explanations.dotfiles.dots:DotfilesExplain"
