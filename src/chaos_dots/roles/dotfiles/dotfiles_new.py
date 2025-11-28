@@ -6,8 +6,7 @@ import os
 from pyinfra.operations import server, pacman, git, files
 from omegaconf import OmegaConf
 from pyinfra.api.operation import add_op
-from pyinfra.api.operations import run_ops
-from pyinfra.facts.files import Directory, File
+from pyinfra.facts.files import Directory
 from pyinfra.facts.server import Command
 
 def getFilesystemState(host, user, paths):
