@@ -35,7 +35,23 @@ def getFilesystemState(host, user, paths):
     return fsState
 
 
-def handleGitRepo(state, host, users, sysUsers, dot):
+def handleGitRepo(users, sysUsers, dot):
+    from pyinfra.api.inventory import Inventory
+    from pyinfra.api.config import Config
+    from pyinfra.api.connect import connect_all, disconnect_all
+    from pyinfra.api.state import StateStage, State
+    from pyinfra.api.operations import run_ops
+    from pyinfra.context import ctx_state
+
+    hosts = ["@local"]
+    inventory = Inventory((hosts, {}))
+    config = Config()
+    state = State(inventory, config)
+    state.current_stage = StateStage.Prepare
+    ctx_state.set(state)
+    connect_all(state)
+    host = state.inventory.get_host("@local")
+
     user = dot.get('user')
     if user not in users:
         print(f"Skipping dotfile setup for user '{user}', as they do not exist on system.")
@@ -52,6 +68,7 @@ def handleGitRepo(state, host, users, sysUsers, dot):
     pull = dot.get('pull', False)
     should_run_git = not dotLocEx or pull
     if should_run_git:
+        print(f"Cloning {dot.get('url')} to {dotLoc}.")
         add_op(
             state, git.repo,
             name=f"Ensuring dotfile repo state for '{user}'",
@@ -61,10 +78,13 @@ def handleGitRepo(state, host, users, sysUsers, dot):
             pull=pull,
             user=user,
         )
+    run_ops(state)
     return dotLoc, dotName, dot, user
 
 
 def manageSingleLink(state, user, sourceItem, targetPath, fsState):
+
+
     targetState = fsState.get(targetPath)
 
     if targetState and targetState.get("exists") and \
@@ -119,7 +139,7 @@ def runDotfiles(state, host, choboloPath, skip):
         print(f"\nNo dotfiles configured, skipping dotfile setup.")
 
     for dotConfig in chObolo.get('dotfiles', []):
-        dotLoc, dotName, dot, user = handleGitRepo(state, host, users, sysUsers, dotConfig)
+        dotLoc, dotName, dot, user = handleGitRepo(users, sysUsers, dotConfig)
         if not dotLoc:
             continue
 
