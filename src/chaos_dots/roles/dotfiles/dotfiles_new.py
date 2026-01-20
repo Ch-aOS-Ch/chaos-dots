@@ -256,3 +256,23 @@ def runDotfiles(state, host, choboloPath, skip):
                 state, files.put, name=f"Recording applied dotfile state to: {stateFile}",
                 src=StringIO(yamlContent), dest=stateFile, user=user, _sudo=True, _sudo_user=user
             )
+
+dotfiles_chobolo_keys = [
+    {
+        "dotfiles": [
+            {
+                'user': "",
+                'url': "",
+                'branch': "main",
+                'pull': False,
+                'links': [
+                    {
+                        'from': "",
+                        'to': "",
+                        'open': False
+                    }
+                ]
+            }
+        ]
+    }
+]

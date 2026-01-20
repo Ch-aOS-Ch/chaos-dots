@@ -27,3 +27,6 @@ dots = "dotfiles"
 
 [project.entry-points."chaos.explain"]
 dotfiles = "chaos_dots.explanations.dotfiles.dots:DotfilesExplain"
+
+[project.entry-points.'chaos.keys']
+dotfiles = 'chaos_dots.roles.dotfiles.dotfiles_new:dotfiles_chobolo_keys'
