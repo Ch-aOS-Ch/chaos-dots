@@ -3,7 +3,7 @@ import yaml
 import time
 import os
 
-from pyinfra.operations import server, pacman, git, files
+from pyinfra.operations import server, git, files
 from omegaconf import OmegaConf
 from pyinfra.api.operation import add_op
 from pyinfra.facts.files import Directory
@@ -123,12 +123,6 @@ def manageSingleLink(state, user, sourceItem, targetPath, fsState):
 
 
 def runDotfiles(state, host, choboloPath, skip):
-    sysDeps = ["git", "findutils"]
-    add_op(
-        state, pacman.packages, name="Installing system dependencies.",
-        packages=sysDeps, present=True, _sudo=True
-    )
-
     usersRawStr = host.get_fact(Command, "awk -F: '($3>=1000 && $7 ~ /(bash|zsh|fish|sh)$/){print $1}' /etc/passwd")
     users = set(usersRawStr.strip().splitlines() if usersRawStr else []) - {'nobody'}
     chObolo = OmegaConf.load(choboloPath)
