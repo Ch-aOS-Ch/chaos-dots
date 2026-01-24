@@ -1,4 +1,5 @@
 from io import StringIO
+from typing import cast
 import yaml
 import time
 import os
@@ -35,23 +36,7 @@ def getFilesystemState(host, user, paths):
     return fsState
 
 
-def handleGitRepo(users, sysUsers, dot):
-    from pyinfra.api.inventory import Inventory
-    from pyinfra.api.config import Config
-    from pyinfra.api.connect import connect_all, disconnect_all
-    from pyinfra.api.state import StateStage, State
-    from pyinfra.api.operations import run_ops
-    from pyinfra.context import ctx_state
-
-    hosts = ["@local"]
-    inventory = Inventory((hosts, {}))
-    config = Config()
-    state = State(inventory, config)
-    state.current_stage = StateStage.Prepare
-    ctx_state.set(state)
-    connect_all(state)
-    host = state.inventory.get_host("@local")
-
+def handleGitRepo(users, sysUsers, dot, host, state):
     user = dot.get('user')
     if user not in users:
         print(f"Skipping dotfile setup for user '{user}', as they do not exist on system.")
@@ -69,6 +54,8 @@ def handleGitRepo(users, sysUsers, dot):
     should_run_git = not dotLocEx or pull
     if should_run_git:
         print(f"Cloning {dot.get('url')} to {dotLoc}.")
+        # HACK: Ensure the git repo is cloned before using git.repo to manage it
+        host.get_fact(Command, f"git clone '{dot.get('url')}' '{dotLoc}'", _sudo=True, _sudo_user=user)
         add_op(
             state, git.repo,
             name=f"Ensuring dotfile repo state for '{user}'",
@@ -78,7 +65,6 @@ def handleGitRepo(users, sysUsers, dot):
             pull=pull,
             user=user,
         )
-    run_ops(state)
     return dotLoc, dotName, dot, user
 
 
@@ -129,15 +115,17 @@ def runDotfiles(state, host, choboloPath, skip):
     sysUsersRaw = host.get_fact(Command, "awk -F: '($3<1000){print $1}' /etc/passwd")
     sysUsers = set(sysUsersRaw.strip().splitlines() if sysUsersRaw else [])
 
+    chObolo = cast(dict, chObolo)
     if not chObolo.get('dotfiles'):
         print(f"\nNo dotfiles configured, skipping dotfile setup.")
 
     for dotConfig in chObolo.get('dotfiles', []):
-        dotLoc, dotName, dot, user = handleGitRepo(users, sysUsers, dotConfig)
+        dotLoc, dotName, dot, user = handleGitRepo(users, sysUsers, dotConfig, host, state)
         if not dotLoc:
             continue
 
         userHome = f"/home/{user}"
+        dot = cast(dict, dot)
         desiredLinks = dot.get('links', [])
 
         prevStateFile = f"{userHome}/.local/state/chaos/dotfiles_{dotName}"
